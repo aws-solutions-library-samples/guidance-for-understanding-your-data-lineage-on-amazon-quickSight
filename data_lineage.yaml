@@ -1,0 +1,656 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This Cloudformation template creates an Amazon QuickSight Dashboard to visualize data usage as well as relationship between Data sources, Analyses, Dashboards and fields within Dashboards.
+Parameters:
+  QuickSightUser:
+    Type: String
+    MinLength: 1
+    Description: REQUIRED - Enter a QuickSight Author/Admin username.
+  QuickSightUserNamespace:
+    Type: String
+    MinLength: 1
+    Description: REQUIRED - Enter the QuickSight Author/Admin User's Namespace.
+    Default: default
+  Suffix:
+    Type: String
+    Description: OPTIONAL - If you need to create multiple instances of this sample on same aws account, add a short NUMERIC suffix here.
+
+Resources:
+  QuickSightDataLineageExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: !Join
+        - ''
+        - - QuickSightDataLineageExecRole
+          - !Ref Suffix
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Join
+          - ''
+          - - CreateQuickSightDataLineagePolicy
+            - !Ref Suffix
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:Put*
+                  - s3:Delete*
+                  - s3:List*
+                  - s3:Get*
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - createquicksight-dlcodebucket-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - createquicksight-dlcodebucket-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+                      - '/*'
+              - Effect: Allow
+                Action:
+                  - s3:List*
+                  - s3:Get*
+                  - s3:Put*
+                  - s3:Delete*
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - quicksight-datalineage-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - quicksight-datalineage-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+                      - '/*'
+              - Effect: Allow
+                Action:
+                  - quicksight:Describe*
+                  - quicksight:List*
+                  - quicksight:StartAssetBundleImportJob
+                  - quicksight:CreateDataSource
+                  - quicksight:CreateDataSet
+                  - quicksight:CreateDashboard
+                  - quicksight:CreateAnalysis
+                  - quicksight:PassDataSource
+                  - quicksight:UpdateDataSourcePermissions
+                  - quicksight:UpdateDataSetPermissions
+                  - quicksight:UpdateDashboardPermissions
+                  - quicksight:UpdateAnalysisPermissions
+                  - quicksight:CreateTheme
+                  - quicksight:UpdateThemePermissions
+                  - quicksight:PassDataSet
+                  - quicksight:UpdateDashboard
+                  - quicksight:UpdateDashboardPublishedVersion
+                Resource: '*'
+              - Effect: Allow
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:lambda:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':function:'
+                      - 'CreateQuickSightDLCustomResource'
+                      - !Ref Suffix
+                Action:
+                  - lambda:InvokeFunction
+              - Effect: Allow
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:athena:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':workgroup/'
+                      - 'primary'
+                Action:
+                  - athena:StartQueryExecution
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                Resource:
+                  - arn:aws:s3:::*
+              - Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:CreateDatabase
+                  - glue:DeleteDatabase
+                  - glue:UpdateDatabase
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:CreateTable
+                  - glue:DeleteTable
+                  - glue:UpdateTable
+                  - glue:GetDatabase
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':database/quicksightdatalineage'
+                      - !Ref Suffix
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':catalog'
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':table/quicksightdatalineage'
+                      - !Ref Suffix
+                      - '/*'
+
+  CodeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        RestrictPublicBuckets: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+      BucketName: !Join
+          - ''
+          - - createquicksight-dlcodebucket-
+            - !Ref AWS::AccountId
+            - !Ref Suffix
+
+  QuickSightDataLineageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        RestrictPublicBuckets: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+      BucketName: !Join
+          - ''
+          - - quicksight-datalineage-
+            - !Ref AWS::AccountId
+            - !Ref Suffix
+
+  CodeDownloadLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.10
+      FunctionName: !Join
+        - ''
+        - - CreateQuickSightDLCodeDownload
+          - !Ref Suffix
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt QuickSightDataLineageExecRole.Arn
+      Timeout: 120
+      ReservedConcurrentExecutions: 1
+      Code:
+        ZipFile: |
+          import json, urllib3, boto3
+          import cfnresponse
+          from zipfile import ZipFile
+          from io import BytesIO
+
+          def handler(event, context):
+
+            def create_file(codeUrl, bucket, fileName, s3):
+              try:
+                http = urllib3.PoolManager()
+                fileContent = http.request('GET',codeUrl).data
+                qsAssets = http.request('GET',"https://github.com/rajjayaaws/quicksightdl/raw/main/assetbundle-qs-dl.qs").data
+                boto3layerzip = http.request('GET',"https://github.com/rajjayaaws/quicksightdl/raw/main/updateboto3-layer.zip").data
+
+                response = s3.put_object(
+                                Bucket = bucket,
+                                Key = fileName,
+                                Body = fileContent
+                            )
+                response = s3.put_object(
+                                Bucket = bucket,
+                                Key = "assetbundle-qs-dl.qs",
+                                Body = qsAssets
+                            )
+                response = s3.put_object(
+                                Bucket = bucket,
+                                Key = "updateboto3-layer.zip",
+                                Body = boto3layerzip
+                            )
+                return(True, "File created - " + fileName)
+
+              except Exception as e:
+                return (False, "Couldnt download file - " + fileName + ": " + str(e))
+
+            def delete_file(bucket, fileName, s3):
+              try:
+                response = s3.delete_object(
+                                Bucket = bucket,
+
+                                Key = fileName
+                            )
+                return (True, "File deleted - " + fileName)
+
+              except Exception as e:
+                return (False, "Couldnt delete file - " + fileName + ": " + str(e))
+
+            #####################################################################################
+            #Main flow
+            #####################################################################################
+            codeUrl = event['ResourceProperties']['CodeUrl']
+            bucket = event['ResourceProperties']['Bucket']
+            fileName = event['ResourceProperties']['FileName']
+            s3 = boto3.client('s3')
+
+            if event['RequestType'] == 'Create':
+              result, response = create_file(codeUrl, bucket, fileName, s3)
+            elif event['RequestType'] == 'Update':
+              result, response = (True, "Update method not implemented")
+            elif event['RequestType'] == 'Delete':
+              result, response = delete_file(bucket, fileName, s3)
+            else:
+              result = False
+              response = "Unknown operation: " + event['RequestType']
+
+            responseData = {}
+            responseData['Response'] = response
+
+            if result:
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, 'CustomResourceLambdaFileDownload')
+            else:
+              cfnresponse.send(event, context, cfnresponse.FAILED, responseData, 'CustomResourceLambdaFileDownload')
+
+  CodeDownloadLambdaExecutor:
+    Type: Custom::CodeDownloadLambdaExecutor
+    Properties:
+      ServiceToken: !GetAtt CodeDownloadLambda.Arn
+      Name: !Join
+        - ''
+        - - CreateQuickSightDLCodeDownloadLambdaExecutor
+          - !Ref Suffix
+      CodeUrl: 'https://github.com/rajjayaaws/quicksightdl/raw/main/LambdaResource.zip'
+      Bucket: !Ref CodeBucket
+      FileName: CreateQuickSightDLCustomResource.zip
+
+  QuickSightDLResourceLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    DependsOn: CodeDownloadLambdaExecutor
+    Properties:
+      LayerName: !Join
+        - ''
+        - - quicksightdatalineageupdateboto3layer
+          - !Ref Suffix
+      Description: Layer for updated boto3 required for QuickSight Data Lineage Lambda Function.
+      Content:
+        S3Bucket: !Ref CodeBucket
+        S3Key: updateboto3-layer.zip
+
+  QuickSightDLResourceLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: QuickSightDLResourceLambdaLayer
+    Properties:
+      Runtime: python3.10
+      FunctionName: !Join
+        - ''
+        - - CreateQuickSightDLCustomResource
+          - !Ref Suffix
+      Handler: !Join
+        - ''
+        - - CreateQuickSightDLCustomResource.handler
+      MemorySize: 128
+      Role: !GetAtt QuickSightDataLineageExecRole.Arn
+      Timeout: 900
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: CreateQuickSightDLCustomResource.zip
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Ref QuickSightDLResourceLambdaLayer
+      Environment:
+        Variables:
+          AwsAccountId: !Ref AWS::AccountId
+          DataLineageBucket: !Join
+            - ''
+            - - quicksight-datalineage-
+              - !Ref AWS::AccountId
+              - !Ref Suffix
+          LambdaFunctionName: !Join
+            - ''
+            - - CreateQuickSightDLCustomResource
+              - !Ref Suffix
+          databaseName: !Join
+            - ''
+            - - quicksightdatalineage
+          namespace: !Ref QuickSightUserNamespace
+          codeBucket: !Ref CodeBucket
+          userName: !Ref QuickSightUser
+          qsImportJobID: !Join
+            - ''
+            - - quicksight-datalineage-import-job
+              - !Ref Suffix 
+          suffix: !Ref Suffix
+
+  QuickSightDLLambdaExecutor:
+    Type: Custom::QuickSightDLLambdaExecutor
+    DependsOn: QuickSightDLResourceLambda
+    Properties:
+      ServiceToken: !GetAtt QuickSightDLResourceLambda.Arn
+      Name: !Join
+        - ''
+        - - CreateQuickSightDLLambdaExecutor
+          - !Ref Suffix
+
+  EventRule:
+    Type: AWS::Events::Rule
+    DependsOn: QuickSightDLLambdaExecutor
+    Properties:
+      EventBusName: default
+      EventPattern:
+        source:
+          - aws.quicksight
+        detail-type:
+          - AWS API Call via CloudTrail
+          - AWS Service Event via CloudTrail
+        detail:
+          eventSource:
+            - quicksight.amazonaws.com
+          eventName:
+            - CreateAnalysis
+            - CreateDataSet
+            - CreateDataSource
+            - CreateDashboard
+            - CreateTemplate
+            - CreateFolder
+            - RegisterUser
+            - CreateGroup
+            - CreateGroupMembership
+            - UpdateDataSource
+            - UpdateDataSet
+            - UpdateAnalysis
+            - UpdateDashboard
+            - UpdateFolder
+            - UpdateTemplate
+            - UpdateUser
+            - UpdateGroup
+            - UpdateGroupMembership
+            - UpdateDataSourcePermissions
+            - UpdateDataSetPermissions
+            - UpdateAnalysisPermissions
+            - UpdateDashboardPermissions
+            - UpdateFolderPermissions
+            - UpdateTemplatePermissions
+            - DeleteAnalysis
+            - DeleteDataSet
+            - DeleteDataSource
+            - DeleteDashboard
+            - DeleteTemplate
+            - DeleteFolder
+            - DeleteUser
+            - DeleteGroup
+      Name: !Join
+        - ''
+        - - quicksight-datalineage-rule-
+          - !Ref Suffix
+      State: ENABLED
+      Targets:
+        - Id: quicksight-data-lineage
+          Arn: !GetAtt QuickSightDLResourceLambda.Arn
+
+#   GetQuickSightAccountStatus:
+#     Type: Custom::GetQuickSightAccountStatus
+#     Properties:
+#       ServiceToken: !GetAtt CustomResourceLambda.Arn
+#       Name: !Join
+#         - ''
+#         - - GetQuickSightAccountStatus
+#           - !Ref Suffix
+#       ResourceType: 'getAccountStatus'
+#       AwsAccountId: !Ref AWS::AccountId
+#       AccountName: !Ref AWS::AccountId
+#       NotificationEmail: !Ref QuickSighNotificationEmail
+#       UserName: !Ref QuickSightUser
+#       QSFirstName: !Ref FirstName
+#       QSLastName: !Ref LastName
+#       QSQuickSightContactNumber: !Ref QuickSightContactNumber
+
+#   GetQuickSightIdentityRegion:
+#     Type: Custom::GetQuickSightIdentityRegion
+#     DependsOn: GetQuickSightAccountStatus
+#     Properties:
+#       ServiceToken: !GetAtt CustomResourceLambda.Arn
+#       Name: !Join
+#         - ''
+#         - - GetQuickSightIdentityRegion
+#           - !Ref Suffix
+#       ResourceType: 'getIdentityRegion'
+#       AwsAccountId: !Ref AWS::AccountId
+
+#   QuckSightDataSource:
+#     Type: Custom::QuckSightDataSource
+#     DependsOn: GetQuickSightIdentityRegion
+#     Properties:
+#       ServiceToken: !GetAtt CustomResourceLambda.Arn
+#       Name: !Join
+#         - ''
+#         - - CreateQuickSight-
+#           - 'nycsummit2003quicksight'
+#           - !Ref Suffix
+#       ResourceType: 'quickSightDatasource'
+#       AwsAccountId: !Ref AWS::AccountId
+#       UserArn: !Join
+#             - ''
+#             - - 'arn:aws:quicksight:'
+#               - !GetAtt GetQuickSightIdentityRegion.Response
+#               - ':'
+#               - !Ref AWS::AccountId
+#               - ':user/default/'
+#               - !Ref QuickSightUser
+#       DatasourceName: !Join
+#         - ''
+#         - - CreateQuickSight-
+#           - 'nycsummit2003quicksight'
+#           - !Ref Suffix
+#       DataSourceId: !Join
+#         - ''
+#         - - CreateQuickSight-ds-
+#           - 'nycsummit2003quicksight'
+#           - !Ref Suffix
+#       RunAsRoleArn: !GetAtt CreateQuickSightQuickSightRole.Arn
+
+#   QuickSightDataset:
+#     Type: Custom::QuickSightDataset
+#     DependsOn: QuckSightDataSource
+#     Properties:
+#       ServiceToken: !GetAtt CustomResourceLambda.Arn
+#       Name: !Join
+#         - ''
+#         - - QuickSightDataset-
+#           - 'nycsummit2003quicksight'
+#           - !Ref Suffix
+#       ResourceType: 'quickSightDataset'
+#       AwsAccountId: !Ref AWS::AccountId
+#       DatabaseName: !Join
+#             - ''
+#             - - CreateQuickSight
+#               - !Ref Suffix
+#       TableName: 'nycsummit2003quicksight'
+#       Suffix: !Ref Suffix
+#       UserArn: !Join
+#             - ''
+#             - - 'arn:aws:quicksight:'
+#               - !GetAtt GetQuickSightIdentityRegion.Response
+#               - ':'
+#               - !Ref AWS::AccountId
+#               - ':user/default/'
+#               - !Ref QuickSightUser
+#       DatasetName: !Join
+#         - ''
+#         - - ''
+#           - 'NYC-Summit-Data-CarSales'
+#       DataSourceArn: !GetAtt QuckSightDataSource.Response
+
+#   GetQuickSightTheme:
+#     Type: Custom::GetQuickSightTheme
+#     DependsOn: QuickSightDataset
+#     Properties:
+#       ServiceToken: !GetAtt CustomResourceLambda.Arn
+#       Name: !Join
+#         - ''
+#         - - GetQuickSightTheme
+#           - !Ref Suffix
+#       ResourceType: 'getTheme'
+#       AwsAccountId: !Ref AWS::AccountId
+
+#   QuickSightAnalysis1:
+#     Type: AWS::QuickSight::Analysis
+#     DependsOn: GetQuickSightTheme
+#     Properties:
+#       AnalysisId: !Join
+#         - ''
+#         - - CreateQuickSight-
+#           - 'anymotorsmonthlysalesreport'
+#           - !Ref Suffix
+#       Name: !Join
+#         - ''
+#         - - ''
+#           - 'AnyMotors Monthly Sales Report'
+#       AwsAccountId: !Ref AWS::AccountId
+#       SourceEntity:
+#         SourceTemplate:
+#           Arn: arn:aws:quicksight:us-east-1:935214874196:template/Monthly-Sales-Report-Template
+#           DataSetReferences:
+#             - DataSetPlaceholder: nysummit2023
+#               DataSetArn: !Join
+#                   - ''
+#                   - - 'arn:aws:quicksight:'
+#                     - !Ref AWS::Region
+#                     - ':'
+#                     - !Ref AWS::AccountId
+#                     - ':dataset/'
+#                     - 'NYC-Summit-Data-CarSales'
+#       ThemeArn: !Join
+#           - ''
+#           - - 'arn:aws:quicksight:'
+#             - !Ref AWS::Region
+#             - ':'
+#             - !Ref AWS::AccountId
+#             - ':theme/'
+#             - 'anymotorsmonthly'
+#       Permissions:
+#         - Principal: !Join
+#             - ''
+#             - - 'arn:aws:quicksight:'
+#               - 'us-east-1'
+#               - ':'
+#               - !Ref AWS::AccountId
+#               - ':user/default/'
+#               - !Ref QuickSightUser
+#           Actions:
+#             - quicksight:RestoreAnalysis
+#             - quicksight:UpdateAnalysisPermissions
+#             - quicksight:DeleteAnalysis
+#             - quicksight:DescribeAnalysisPermissions
+#             - quicksight:QueryAnalysis
+#             - quicksight:DescribeAnalysis
+#             - quicksight:UpdateAnalysis
+
+#   QuickSightAnalysis2:
+#     Type: AWS::QuickSight::Analysis
+#     DependsOn: QuickSightAnalysis1
+#     Properties:
+#       AnalysisId: !Join
+#         - ''
+#         - - CreateQuickSight-
+#           - 'anymotorssalesdashboard'
+#           - !Ref Suffix
+#       Name: !Join
+#         - ''
+#         - - 'AnyMotors Sales Dashboard'
+#           - 'Auto Dashboard'
+#       AwsAccountId: !Ref AWS::AccountId
+#       SourceEntity:
+#         SourceTemplate:
+#           Arn: arn:aws:quicksight:us-east-1:935214874196:template/Auto-Dashboard-Template
+#           DataSetReferences:
+#             - DataSetPlaceholder: nysummit2023
+#               DataSetArn: !Join
+#                   - ''
+#                   - - 'arn:aws:quicksight:'
+#                     - !Ref AWS::Region
+#                     - ':'
+#                     - !Ref AWS::AccountId
+#                     - ':dataset/'
+#                     - 'NYC-Summit-Data-CarSales'
+#       ThemeArn: !Join
+#           - ''
+#           - - 'arn:aws:quicksight:'
+#             - !Ref AWS::Region
+#             - ':'
+#             - !Ref AWS::AccountId
+#             - ':theme/'
+#             - 'anymotorssales'
+#       Permissions:
+#         - Principal: !Join
+#             - ''
+#             - - 'arn:aws:quicksight:'
+#               - 'us-east-1'
+#               - ':'
+#               - !Ref AWS::AccountId
+#               - ':user/default/'
+#               - !Ref QuickSightUser
+#           Actions:
+#             - quicksight:RestoreAnalysis
+#             - quicksight:UpdateAnalysisPermissions
+#             - quicksight:DeleteAnalysis
+#             - quicksight:DescribeAnalysisPermissions
+#             - quicksight:QueryAnalysis
+#             - quicksight:DescribeAnalysis
+#             - quicksight:UpdateAnalysis
+
+# Outputs:
+
+#   AdhocAnalysisUrl:
+#     Description: Click on this url to access the Monthly Sales Report Analysis in QuickSight.
+#     Value: !Join
+#       - ''
+#       - - 'https://'
+#         - !Ref AWS::Region
+#         - '.quicksight.aws.amazon.com/sn/analyses/CreateQuickSight-'
+#         - 'monthlysalesreport'
+#         - !Ref Suffix
