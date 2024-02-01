@@ -17,6 +17,9 @@ Parameters:
 Resources:
   QuickSightDataLineageExecRole:
     Type: AWS::IAM::Role
+    Metadata:
+      CommentS3Permissions: The Lambda function is allowed s3:Put*, s3:Delete*, s3:List* and s3:Get* permissions on the S3 buckets created to add, delete QuickSight objects metadata.
+      CommentQuickSightPermissions: The Lambda function is allowed quicksight:Describe* and quicksight:List* permissions which are required to obtain QuickSight objects metadata using Describe API calls.
     Properties:
       Path: /
       RoleName: !Join
@@ -183,30 +186,117 @@ Resources:
   CodeBucket:
     Type: AWS::S3::Bucket
     Properties:
+      VersioningConfiguration:
+        Status: Enabled
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         RestrictPublicBuckets: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
+      LoggingConfiguration:
+        DestinationBucketName: !Join
+          - ''
+          - - createquicksight-dlcodebucket-
+            - !Ref AWS::AccountId
+            - !Ref Suffix
+        LogFilePrefix: access-logs
       BucketName: !Join
           - ''
           - - createquicksight-dlcodebucket-
             - !Ref AWS::AccountId
             - !Ref Suffix
 
+  CodeBucketS3BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    DependsOn: CodeBucket
+    Properties:
+      Bucket: !Ref CodeBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:PutObject'
+            Effect: Allow
+            Principal:
+              Service: logging.s3.amazonaws.com
+            Resource: !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref CodeBucket
+                - /*
+            Condition:
+              ArnLike:
+                'aws:SourceArn': !GetAtt 
+                  - S3Bucket
+                  - Arn
+              StringEquals:
+                'aws:SourceAccount': !Sub '${AWS::AccountId}'
+
   QuickSightDataLineageBucket:
     Type: AWS::S3::Bucket
     Properties:
+      VersioningConfiguration:
+        Status: Enabled
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         RestrictPublicBuckets: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
+      LoggingConfiguration:
+        DestinationBucketName: !Join
+          - ''
+          - - quicksight-datalineage-
+            - !Ref AWS::AccountId
+            - !Ref Suffix
+        LogFilePrefix: access-logs
       BucketName: !Join
           - ''
           - - quicksight-datalineage-
             - !Ref AWS::AccountId
             - !Ref Suffix
+
+  DLBucketS3BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    DependsOn: QuickSightDataLineageBucket
+    Properties:
+      Bucket: !Ref QuickSightDataLineageBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+                - 's3:*'
+              Effect: Deny
+              Resource:
+                'Fn::Join':
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: QuickSightDataLineageBucket
+                    - /*
+                'Fn::Join':
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - Ref: QuickSightDataLineageBucket
+              Principal: '*'
+              Condition:
+                Bool:
+                    'aws:SecureTransport': 'false'
+          - Action:
+              - 's3:PutObject'
+            Effect: Allow
+            Principal:
+              Service: logging.s3.amazonaws.com
+            Resource: !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref QuickSightDataLineageBucket
+                - /*
+            Condition:
+              ArnLike:
+                'aws:SourceArn': !GetAtt 
+                  - S3Bucket
+                  - Arn
+              StringEquals:
+                'aws:SourceAccount': !Sub '${AWS::AccountId}'
 
   CodeDownloadLambda:
     Type: AWS::Lambda::Function
@@ -220,6 +310,7 @@ Resources:
       MemorySize: 128
       Role: !GetAtt QuickSightDataLineageExecRole.Arn
       Timeout: 120
+      Runtime: python3.12
       ReservedConcurrentExecutions: 1
       Code:
         ZipFile: |
@@ -325,6 +416,8 @@ Resources:
     DependsOn: QuickSightDLResourceLambdaLayer
     Properties:
       Runtime: python3.10
+      TracingConfig:
+        Mode: Active
       FunctionName: !Join
         - ''
         - - CreateQuickSightDLCustomResource
@@ -333,6 +426,7 @@ Resources:
         - ''
         - - CreateQuickSightDLCustomResource.handler
       MemorySize: 128
+      Runtime: python3.12
       Role: !GetAtt QuickSightDataLineageExecRole.Arn
       Timeout: 900
       Code:
@@ -432,225 +526,11 @@ Resources:
         - Id: quicksight-data-lineage
           Arn: !GetAtt QuickSightDLResourceLambda.Arn
 
-#   GetQuickSightAccountStatus:
-#     Type: Custom::GetQuickSightAccountStatus
-#     Properties:
-#       ServiceToken: !GetAtt CustomResourceLambda.Arn
-#       Name: !Join
-#         - ''
-#         - - GetQuickSightAccountStatus
-#           - !Ref Suffix
-#       ResourceType: 'getAccountStatus'
-#       AwsAccountId: !Ref AWS::AccountId
-#       AccountName: !Ref AWS::AccountId
-#       NotificationEmail: !Ref QuickSighNotificationEmail
-#       UserName: !Ref QuickSightUser
-#       QSFirstName: !Ref FirstName
-#       QSLastName: !Ref LastName
-#       QSQuickSightContactNumber: !Ref QuickSightContactNumber
-
-#   GetQuickSightIdentityRegion:
-#     Type: Custom::GetQuickSightIdentityRegion
-#     DependsOn: GetQuickSightAccountStatus
-#     Properties:
-#       ServiceToken: !GetAtt CustomResourceLambda.Arn
-#       Name: !Join
-#         - ''
-#         - - GetQuickSightIdentityRegion
-#           - !Ref Suffix
-#       ResourceType: 'getIdentityRegion'
-#       AwsAccountId: !Ref AWS::AccountId
-
-#   QuckSightDataSource:
-#     Type: Custom::QuckSightDataSource
-#     DependsOn: GetQuickSightIdentityRegion
-#     Properties:
-#       ServiceToken: !GetAtt CustomResourceLambda.Arn
-#       Name: !Join
-#         - ''
-#         - - CreateQuickSight-
-#           - 'nycsummit2003quicksight'
-#           - !Ref Suffix
-#       ResourceType: 'quickSightDatasource'
-#       AwsAccountId: !Ref AWS::AccountId
-#       UserArn: !Join
-#             - ''
-#             - - 'arn:aws:quicksight:'
-#               - !GetAtt GetQuickSightIdentityRegion.Response
-#               - ':'
-#               - !Ref AWS::AccountId
-#               - ':user/default/'
-#               - !Ref QuickSightUser
-#       DatasourceName: !Join
-#         - ''
-#         - - CreateQuickSight-
-#           - 'nycsummit2003quicksight'
-#           - !Ref Suffix
-#       DataSourceId: !Join
-#         - ''
-#         - - CreateQuickSight-ds-
-#           - 'nycsummit2003quicksight'
-#           - !Ref Suffix
-#       RunAsRoleArn: !GetAtt CreateQuickSightQuickSightRole.Arn
-
-#   QuickSightDataset:
-#     Type: Custom::QuickSightDataset
-#     DependsOn: QuckSightDataSource
-#     Properties:
-#       ServiceToken: !GetAtt CustomResourceLambda.Arn
-#       Name: !Join
-#         - ''
-#         - - QuickSightDataset-
-#           - 'nycsummit2003quicksight'
-#           - !Ref Suffix
-#       ResourceType: 'quickSightDataset'
-#       AwsAccountId: !Ref AWS::AccountId
-#       DatabaseName: !Join
-#             - ''
-#             - - CreateQuickSight
-#               - !Ref Suffix
-#       TableName: 'nycsummit2003quicksight'
-#       Suffix: !Ref Suffix
-#       UserArn: !Join
-#             - ''
-#             - - 'arn:aws:quicksight:'
-#               - !GetAtt GetQuickSightIdentityRegion.Response
-#               - ':'
-#               - !Ref AWS::AccountId
-#               - ':user/default/'
-#               - !Ref QuickSightUser
-#       DatasetName: !Join
-#         - ''
-#         - - ''
-#           - 'NYC-Summit-Data-CarSales'
-#       DataSourceArn: !GetAtt QuckSightDataSource.Response
-
-#   GetQuickSightTheme:
-#     Type: Custom::GetQuickSightTheme
-#     DependsOn: QuickSightDataset
-#     Properties:
-#       ServiceToken: !GetAtt CustomResourceLambda.Arn
-#       Name: !Join
-#         - ''
-#         - - GetQuickSightTheme
-#           - !Ref Suffix
-#       ResourceType: 'getTheme'
-#       AwsAccountId: !Ref AWS::AccountId
-
-#   QuickSightAnalysis1:
-#     Type: AWS::QuickSight::Analysis
-#     DependsOn: GetQuickSightTheme
-#     Properties:
-#       AnalysisId: !Join
-#         - ''
-#         - - CreateQuickSight-
-#           - 'anymotorsmonthlysalesreport'
-#           - !Ref Suffix
-#       Name: !Join
-#         - ''
-#         - - ''
-#           - 'AnyMotors Monthly Sales Report'
-#       AwsAccountId: !Ref AWS::AccountId
-#       SourceEntity:
-#         SourceTemplate:
-#           Arn: arn:aws:quicksight:us-east-1:935214874196:template/Monthly-Sales-Report-Template
-#           DataSetReferences:
-#             - DataSetPlaceholder: nysummit2023
-#               DataSetArn: !Join
-#                   - ''
-#                   - - 'arn:aws:quicksight:'
-#                     - !Ref AWS::Region
-#                     - ':'
-#                     - !Ref AWS::AccountId
-#                     - ':dataset/'
-#                     - 'NYC-Summit-Data-CarSales'
-#       ThemeArn: !Join
-#           - ''
-#           - - 'arn:aws:quicksight:'
-#             - !Ref AWS::Region
-#             - ':'
-#             - !Ref AWS::AccountId
-#             - ':theme/'
-#             - 'anymotorsmonthly'
-#       Permissions:
-#         - Principal: !Join
-#             - ''
-#             - - 'arn:aws:quicksight:'
-#               - 'us-east-1'
-#               - ':'
-#               - !Ref AWS::AccountId
-#               - ':user/default/'
-#               - !Ref QuickSightUser
-#           Actions:
-#             - quicksight:RestoreAnalysis
-#             - quicksight:UpdateAnalysisPermissions
-#             - quicksight:DeleteAnalysis
-#             - quicksight:DescribeAnalysisPermissions
-#             - quicksight:QueryAnalysis
-#             - quicksight:DescribeAnalysis
-#             - quicksight:UpdateAnalysis
-
-#   QuickSightAnalysis2:
-#     Type: AWS::QuickSight::Analysis
-#     DependsOn: QuickSightAnalysis1
-#     Properties:
-#       AnalysisId: !Join
-#         - ''
-#         - - CreateQuickSight-
-#           - 'anymotorssalesdashboard'
-#           - !Ref Suffix
-#       Name: !Join
-#         - ''
-#         - - 'AnyMotors Sales Dashboard'
-#           - 'Auto Dashboard'
-#       AwsAccountId: !Ref AWS::AccountId
-#       SourceEntity:
-#         SourceTemplate:
-#           Arn: arn:aws:quicksight:us-east-1:935214874196:template/Auto-Dashboard-Template
-#           DataSetReferences:
-#             - DataSetPlaceholder: nysummit2023
-#               DataSetArn: !Join
-#                   - ''
-#                   - - 'arn:aws:quicksight:'
-#                     - !Ref AWS::Region
-#                     - ':'
-#                     - !Ref AWS::AccountId
-#                     - ':dataset/'
-#                     - 'NYC-Summit-Data-CarSales'
-#       ThemeArn: !Join
-#           - ''
-#           - - 'arn:aws:quicksight:'
-#             - !Ref AWS::Region
-#             - ':'
-#             - !Ref AWS::AccountId
-#             - ':theme/'
-#             - 'anymotorssales'
-#       Permissions:
-#         - Principal: !Join
-#             - ''
-#             - - 'arn:aws:quicksight:'
-#               - 'us-east-1'
-#               - ':'
-#               - !Ref AWS::AccountId
-#               - ':user/default/'
-#               - !Ref QuickSightUser
-#           Actions:
-#             - quicksight:RestoreAnalysis
-#             - quicksight:UpdateAnalysisPermissions
-#             - quicksight:DeleteAnalysis
-#             - quicksight:DescribeAnalysisPermissions
-#             - quicksight:QueryAnalysis
-#             - quicksight:DescribeAnalysis
-#             - quicksight:UpdateAnalysis
-
-# Outputs:
-
-#   AdhocAnalysisUrl:
-#     Description: Click on this url to access the Monthly Sales Report Analysis in QuickSight.
-#     Value: !Join
-#       - ''
-#       - - 'https://'
-#         - !Ref AWS::Region
-#         - '.quicksight.aws.amazon.com/sn/analyses/CreateQuickSight-'
-#         - 'monthlysalesreport'
-#         - !Ref Suffix
+  EventBridgeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: EventRule
+    Properties:
+      FunctionName: !GetAtt QuickSightDLResourceLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRule.Arn  
