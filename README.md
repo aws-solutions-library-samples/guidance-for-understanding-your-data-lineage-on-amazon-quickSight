@@ -22,14 +22,14 @@ Business Intelligence (BI) Engineers and Data Architects can accelerate their un
 
 ### Cost
 
-_You are responsible for the cost of the AWS services used while running this Guidance. As of <01> <2024>, the cost for running this Guidance with the default settings in the <Default AWS Region (Most likely will be US East (N. Virginia)) > is approximately $<10.50> per month._
+_You are responsible for the cost of the AWS services used while running this Guidance. As of 01/2024, the cost for running this Guidance with the default settings in the <Default AWS Region (Most likely will be US East (N. Virginia)) > is approximately $10.50 per month._
 
 Replace this amount with the approximate cost for running your Guidance in the default Region. This estimate should be per month and for processing/serving resonable number of requests/entities.
 
 
 ## Prerequisites
 
-### AWS account requirements (If applicable)
+### AWS account requirements
 
 This deployment requires you have an AWS CloudTrail trail enabled in the region you are deployment. The trail should have Management Events enabled.
 
@@ -37,7 +37,7 @@ This deployment requires you have an AWS CloudTrail trail enabled in the region 
 
 The Guidance is recommended to be deployed in the same AWS region having QuickSight resources.
 
-## Deployment Steps (required)
+## Deployment Steps
 
 **Required Input Parameters**
 - Stack name - Stack name can include letters (A-Z and a-z), numbers (0-9), and dashes (-)
