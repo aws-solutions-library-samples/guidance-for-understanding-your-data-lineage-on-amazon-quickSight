@@ -161,7 +161,7 @@ Resources:
                       - ':'
                       - !Ref AWS::AccountId
                       - ':database/quicksightdatalineage'
-                      - !Ref Suffix
+                      # - !Ref Suffix
                   - !Join
                     - ''
                     - - 'arn:'
@@ -180,7 +180,7 @@ Resources:
                       - ':'
                       - !Ref AWS::AccountId
                       - ':table/quicksightdatalineage'
-                      - !Ref Suffix
+                      # - !Ref Suffix
                       - '/*'
 
   CodeBucket:
@@ -226,9 +226,7 @@ Resources:
                 - /*
             Condition:
               ArnLike:
-                'aws:SourceArn': !GetAtt 
-                  - S3Bucket
-                  - Arn
+                'aws:SourceArn': !GetAtt CodeBucket.Arn
               StringEquals:
                 'aws:SourceAccount': !Sub '${AWS::AccountId}'
 
@@ -265,21 +263,21 @@ Resources:
         Statement:
           - Action:
                 - 's3:*'
-              Effect: Deny
-              Resource:
-                'Fn::Join':
-                  - ''
-                  - - 'arn:aws:s3:::'
-                    - Ref: QuickSightDataLineageBucket
-                    - /*
-                'Fn::Join':
-                  - ''
-                  - - 'arn:aws:s3:::'
-                    - Ref: QuickSightDataLineageBucket
-              Principal: '*'
-              Condition:
-                Bool:
-                    'aws:SecureTransport': 'false'
+            Effect: Deny
+            Resource:
+              'Fn::Join':
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: QuickSightDataLineageBucket
+                  - /*
+              'Fn::Join':
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: QuickSightDataLineageBucket
+            Principal: '*'
+            Condition:
+              Bool:
+                  'aws:SecureTransport': 'false'
           - Action:
               - 's3:PutObject'
             Effect: Allow
@@ -292,9 +290,7 @@ Resources:
                 - /*
             Condition:
               ArnLike:
-                'aws:SourceArn': !GetAtt 
-                  - S3Bucket
-                  - Arn
+                'aws:SourceArn': !GetAtt QuickSightDataLineageBucket.Arn
               StringEquals:
                 'aws:SourceAccount': !Sub '${AWS::AccountId}'
 
