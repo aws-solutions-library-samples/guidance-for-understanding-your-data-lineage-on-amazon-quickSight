@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: This Cloudformation template creates an Amazon QuickSight Dashboard to visualize data usage as well as relationship between Data sources, Analyses, Dashboards and fields within Dashboards.
+Description: This Cloudformation template (SO9400) creates an Amazon QuickSight Dashboard to visualize data usage as well as relationship between Data sources, Analyses, Dashboards and Fields in QuickSight.
 Parameters:
   QuickSightUser:
     Type: String
