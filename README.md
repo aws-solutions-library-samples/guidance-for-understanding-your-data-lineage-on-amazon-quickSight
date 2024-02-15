@@ -31,7 +31,8 @@ Replace this amount with the approximate cost for running your Guidance in the d
 
 ### AWS account requirements
 
-This deployment requires you have an AWS CloudTrail trail enabled in the region you are deployment. The trail should have Management Events enabled.
+* This deployment requires you have an AWS CloudTrail trail enabled in the region you are deployment. The trail should have Management Events enabled
+* Ensure QuickSight has access to the S3 bucket created by this stack post deployment - https://docs.aws.amazon.com/quicksight/latest/user/troubleshoot-connect-S3.html
 
 ### Supported Regions
 
