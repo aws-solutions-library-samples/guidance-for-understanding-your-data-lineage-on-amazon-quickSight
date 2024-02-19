@@ -246,7 +246,7 @@ Resources:
           - - quicksight-datalineage-
             - !Ref AWS::AccountId
             - !Ref Suffix
-        LogFilePrefix: access-logs
+        LogFilePrefix: access-logs/
       BucketName: !Join
           - ''
           - - quicksight-datalineage-
