@@ -126,6 +126,18 @@ Resources:
                 Resource:
                   - !Join
                     - ''
+                    - - 'arn:aws:iam::'
+                      - !Ref AWS::AccountId
+                      - ':role/'
+                      - 'QuickSightAthenaRunAsRole'
+                      - !Ref Suffix
+                Action:
+                  - iam:PassRole
+                  - iam:GetRole
+              - Effect: Allow
+                Resource:
+                  - !Join
+                    - ''
                     - - 'arn:aws:athena:'
                       - !Ref AWS::Region
                       - ':'
@@ -254,6 +266,7 @@ Resources:
                   - 'glue:GetTables'
                   - 'glue:GetDatabases'
                   - 'glue:GetTable'
+                  - 'glue:GetDatabase'
                 Resource:
                   - !Join
                     - ''
@@ -608,7 +621,7 @@ Resources:
             - ''
             - - quicksight-datalineage-import-job
               - !Ref Suffix 
-          runAsRole: !GetAtt QuickSightDataLineageExecRole.Arn
+          runAsRole: !GetAtt QuickSightAthenaRunAsRole.Arn
           suffix: !Ref Suffix
 
   QuickSightDLLambdaExecutor:
