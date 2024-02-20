@@ -183,6 +183,160 @@ Resources:
                       # - !Ref Suffix
                       - '/*'
 
+  QuickSightAthenaRunAsRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      CommentAthenaPermissions: The Role requires access to ListEngineVersions, ListDataCatalogs and ListWorkGroups in Athena to query data and these permissions require '*' as resource.
+    Properties:
+      Path: /
+      RoleName: !Join
+        - ''
+        - - QuickSightAthenaRunAsRole
+          - !Ref Suffix
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - quicksight.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Join
+          - ''
+          - - QuickSightAthenaRunAsRolePolicy
+            - !Ref Suffix
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'athena:ListEngineVersions'
+                  - 'athena:ListDataCatalogs'
+                  - 'athena:ListWorkGroups'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'athena:GetTableMetadata'
+                  - 'athena:StartQueryExecution'
+                  - 'athena:GetQueryResults'
+                  - 'athena:GetDatabase'
+                  - 'athena:GetDataCatalog'
+                  - 'athena:ListQueryExecutions'
+                  - 'athena:GetWorkGroup'
+                  - 'athena:StopQueryExecution'
+                  - 'athena:GetQueryResultsStream'
+                  - 'athena:ListDatabases'
+                  - 'athena:GetQueryExecution'
+                  - 'athena:ListTableMetadata'
+                  - 'athena:GetQueryResultsStream'
+                  - 'athena:BatchGetQueryExecution'
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:athena:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':workgroup/'
+                      - 'primary'
+                  - !Join
+                    - ''
+                    - - 'arn:aws:athena:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':datacatalog/'
+                      - 'AwsDataCatalog'
+              - Effect: Allow
+                Action:
+                  - 'glue:GetTables'
+                  - 'glue:GetDatabases'
+                  - 'glue:GetTable'
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':database/quicksightdatalineage'
+                      # - !Ref Suffix
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':catalog'
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':table/quicksightdatalineage'
+                      # - !Ref Suffix
+                      - '/*'
+              - Effect: Allow
+                Action:
+                  - 's3:CreateBucket'
+                  - 's3:ListBucket'
+                  - 's3:AbortMultipartUpload'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutBucketPublicAccessBlock'
+                  - 's3:ListMultipartUploadParts'
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                  - 's3:GetBucketLocation'
+                Resource:
+                  - 'arn:aws:s3:::aws-athena-query-results-*'
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - quicksight-datalineage-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:lambda:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':function:'
+                      - 'CreateQuickSightDLCustomResource'
+                      - !Ref Suffix
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:GetObjectVersion'
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - quicksight-datalineage-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - quicksight-datalineage-
+                      - !Ref AWS::AccountId
+                      - !Ref Suffix
+                      - '/*'
+
   CodeBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -454,6 +608,7 @@ Resources:
             - ''
             - - quicksight-datalineage-import-job
               - !Ref Suffix 
+          runAsRole: !GetAtt QuickSightDataLineageExecRole.Arn
           suffix: !Ref Suffix
 
   QuickSightDLLambdaExecutor:
