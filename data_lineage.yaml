@@ -10,9 +10,6 @@ Parameters:
     MinLength: 1
     Description: REQUIRED - Enter the QuickSight Author/Admin User's Namespace.
     Default: default
-  Suffix:
-    Type: String
-    Description: OPTIONAL - If you need to create multiple instances of this sample on same aws account, add a short NUMERIC suffix here.
 
 Resources:
   QuickSightDataLineageExecRole:
@@ -25,7 +22,6 @@ Resources:
       RoleName: !Join
         - ''
         - - QuickSightDataLineageExecRole
-          - !Ref Suffix
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -39,7 +35,6 @@ Resources:
         - PolicyName: !Join
           - ''
           - - CreateQuickSightDataLineagePolicy
-            - !Ref Suffix
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -61,13 +56,11 @@ Resources:
                     - - 'arn:aws:s3:::'
                       - createquicksight-dlcodebucket-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
                   - !Join
                     - ''
                     - - 'arn:aws:s3:::'
                       - createquicksight-dlcodebucket-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
                       - '/*'
               - Effect: Allow
                 Action:
@@ -81,13 +74,11 @@ Resources:
                     - - 'arn:aws:s3:::'
                       - quicksight-datalineage-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
                   - !Join
                     - ''
                     - - 'arn:aws:s3:::'
                       - quicksight-datalineage-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
                       - '/*'
               - Effect: Allow
                 Action:
@@ -119,7 +110,6 @@ Resources:
                       - !Ref AWS::AccountId
                       - ':function:'
                       - 'CreateQuickSightDLCustomResource'
-                      - !Ref Suffix
                 Action:
                   - lambda:InvokeFunction
               - Effect: Allow
@@ -130,7 +120,6 @@ Resources:
                       - !Ref AWS::AccountId
                       - ':role/'
                       - 'QuickSightAthenaRunAsRole'
-                      - !Ref Suffix
                 Action:
                   - iam:PassRole
                   - iam:GetRole
@@ -173,7 +162,6 @@ Resources:
                       - ':'
                       - !Ref AWS::AccountId
                       - ':database/quicksightdatalineage'
-                      # - !Ref Suffix
                   - !Join
                     - ''
                     - - 'arn:'
@@ -192,7 +180,6 @@ Resources:
                       - ':'
                       - !Ref AWS::AccountId
                       - ':table/quicksightdatalineage'
-                      # - !Ref Suffix
                       - '/*'
 
   QuickSightAthenaRunAsRole:
@@ -204,7 +191,6 @@ Resources:
       RoleName: !Join
         - ''
         - - QuickSightAthenaRunAsRole
-          - !Ref Suffix
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -218,7 +204,6 @@ Resources:
         - PolicyName: !Join
           - ''
           - - QuickSightAthenaRunAsRolePolicy
-            - !Ref Suffix
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -277,7 +262,6 @@ Resources:
                       - ':'
                       - !Ref AWS::AccountId
                       - ':database/quicksightdatalineage'
-                      # - !Ref Suffix
                   - !Join
                     - ''
                     - - 'arn:'
@@ -296,7 +280,6 @@ Resources:
                       - ':'
                       - !Ref AWS::AccountId
                       - ':table/quicksightdatalineage'
-                      # - !Ref Suffix
                       - '/*'
               - Effect: Allow
                 Action:
@@ -316,7 +299,6 @@ Resources:
                     - - 'arn:aws:s3:::'
                       - quicksight-datalineage-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
               - Effect: Allow
                 Action:
                   - 'lambda:InvokeFunction'
@@ -329,7 +311,6 @@ Resources:
                       - !Ref AWS::AccountId
                       - ':function:'
                       - 'CreateQuickSightDLCustomResource'
-                      - !Ref Suffix
               - Effect: Allow
                 Action:
                   - 's3:GetObject'
@@ -341,13 +322,11 @@ Resources:
                     - - 'arn:aws:s3:::'
                       - quicksight-datalineage-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
                   - !Join
                     - ''
                     - - 'arn:aws:s3:::'
                       - quicksight-datalineage-
                       - !Ref AWS::AccountId
-                      - !Ref Suffix
                       - '/*'
 
   CodeBucket:
@@ -365,13 +344,11 @@ Resources:
           - ''
           - - createquicksight-dlcodebucket-
             - !Ref AWS::AccountId
-            - !Ref Suffix
         LogFilePrefix: access-logs
       BucketName: !Join
           - ''
           - - createquicksight-dlcodebucket-
             - !Ref AWS::AccountId
-            - !Ref Suffix
 
   CodeBucketS3BucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
@@ -412,13 +389,11 @@ Resources:
           - ''
           - - quicksight-datalineage-
             - !Ref AWS::AccountId
-            - !Ref Suffix
         LogFilePrefix: access-logs/
       BucketName: !Join
           - ''
           - - quicksight-datalineage-
             - !Ref AWS::AccountId
-            - !Ref Suffix
 
   DLBucketS3BucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
@@ -468,7 +443,6 @@ Resources:
       FunctionName: !Join
         - ''
         - - CreateQuickSightDLCodeDownload
-          - !Ref Suffix
       Handler: index.handler
       MemorySize: 128
       Role: !GetAtt QuickSightDataLineageExecRole.Arn
@@ -556,7 +530,6 @@ Resources:
       Name: !Join
         - ''
         - - CreateQuickSightDLCodeDownloadLambdaExecutor
-          - !Ref Suffix
       CodeUrl: 'https://github.com/aws-solutions-library-samples/guidance-for-understanding-your-data-lineage-on-amazon-quickSight/raw/main/LambdaResource.zip'
       Bucket: !Ref CodeBucket
       FileName: CreateQuickSightDLCustomResource.zip
@@ -568,7 +541,6 @@ Resources:
       LayerName: !Join
         - ''
         - - quicksightdatalineageupdateboto3layer
-          - !Ref Suffix
       Description: Layer for updated boto3 required for QuickSight Data Lineage Lambda Function.
       Content:
         S3Bucket: !Ref CodeBucket
@@ -584,7 +556,6 @@ Resources:
       FunctionName: !Join
         - ''
         - - CreateQuickSightDLCustomResource
-          - !Ref Suffix
       Handler: !Join
         - ''
         - - CreateQuickSightDLCustomResource.handler
@@ -606,11 +577,9 @@ Resources:
             - ''
             - - quicksight-datalineage-
               - !Ref AWS::AccountId
-              - !Ref Suffix
           LambdaFunctionName: !Join
             - ''
             - - CreateQuickSightDLCustomResource
-              - !Ref Suffix
           databaseName: !Join
             - ''
             - - quicksightdatalineage
@@ -619,10 +588,11 @@ Resources:
           userName: !Ref QuickSightUser
           qsImportJobID: !Join
             - ''
-            - - quicksight-datalineage-import-job
-              - !Ref Suffix 
+            - - quicksight-datalineage-import-job 
           runAsRole: !GetAtt QuickSightAthenaRunAsRole.Arn
-          suffix: !Ref Suffix
+          suffix: !Join
+            - ''
+            - - 1
 
   QuickSightDLLambdaExecutor:
     Type: Custom::QuickSightDLLambdaExecutor
@@ -632,7 +602,6 @@ Resources:
       Name: !Join
         - ''
         - - CreateQuickSightDLLambdaExecutor
-          - !Ref Suffix
 
   EventRule:
     Type: AWS::Events::Rule
@@ -684,7 +653,6 @@ Resources:
       Name: !Join
         - ''
         - - quicksight-datalineage-rule-
-          - !Ref Suffix
       State: ENABLED
       Targets:
         - Id: quicksight-data-lineage
