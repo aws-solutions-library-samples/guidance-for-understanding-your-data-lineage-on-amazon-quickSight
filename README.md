@@ -24,19 +24,17 @@ Business Intelligence (BI) Engineers and Data Architects can accelerate their un
 
 _You are responsible for the cost of the AWS services used while running this Guidance. As of 01/2024, the cost for running this Guidance with the default settings in the <Default AWS Region (Most likely will be US East (N. Virginia)) > is approximately $10.50 per month._
 
-Replace this amount with the approximate cost for running your Guidance in the default Region. This estimate should be per month and for processing/serving resonable number of requests/entities.
-
 
 ## Prerequisites
 
 ### AWS account requirements
 
-* This deployment requires you have an AWS CloudTrail trail enabled in the region you are deployment. The trail should have Management Events enabled
-* Ensure QuickSight has access to the S3 bucket created by this stack post deployment - https://docs.aws.amazon.com/quicksight/latest/user/troubleshoot-connect-S3.html
+* This deployment requires an AWS CloudTrail trail enabled in the region of deployment. The trail should have _Management Events_ enabled
+* If AWS LAke Formation is inabled in your AWS Account, update default based on this documentation - https://docs.aws.amazon.com/lake-formation/latest/dg/change-settings.html
 
 ### Supported Regions
 
-The Guidance is recommended to be deployed in the same AWS region having QuickSight resources.
+The Guidance is recommended to be deployed in the same AWS region as your QuickSight resources.
 
 ## Deployment Steps
 
