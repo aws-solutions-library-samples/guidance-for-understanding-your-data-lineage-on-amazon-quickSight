@@ -9,7 +9,6 @@ List the top-level sections of the README template, along with a hyperlink to th
 1. [Overview](#overview-required)
     - [Cost](#cost)
 2. [Prerequisites](#prerequisites-required)
-    - [Operating System](#operating-system-required)
 3. [Deployment Steps](#deployment-steps-required)
 4. [Deployment Validation](#deployment-validation-required)
 5. [Running the Guidance](#running-the-guidance-required)
@@ -42,9 +41,6 @@ The Guidance is recommended to be deployed in the same AWS region as your QuickS
 - Stack name - Stack name can include letters (A-Z and a-z), numbers (0-9), and dashes (-)
 - QuickSightUser - User name of an active QuickSight user who needs access to the Data Lineage Dashboard and relevant QuickSight resources.
 - QuickSightUserNamespace - Namespace of the QuickSight user (Provide 'default' unless the above QuickSight user was created in a different Namespace)
-
-**Optional Input Parameters**
-- Suffix - Add a short NUMERIC suffix here if you need to create multiple instances of this deployment
 
 1. Download the YAML file from this repository
 2. Navigate to AWS Console
