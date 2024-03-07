@@ -488,8 +488,8 @@ Resources:
               try:
                 http = urllib3.PoolManager()
                 fileContent = http.request('GET',codeUrl).data
-                qsAssets = http.request('GET',"https://github.com/rajjayaaws/quicksightdl/raw/main/assetbundle-qs-dl.qs").data
-                boto3layerzip = http.request('GET',"https://github.com/rajjayaaws/quicksightdl/raw/main/updateboto3-layer.zip").data
+                qsAssets = http.request('GET',"https://github.com/aws-solutions-library-samples/guidance-for-understanding-your-data-lineage-on-amazon-quickSight/raw/main/assetbundle-qs-dl.qs").data
+                boto3layerzip = http.request('GET',"https://github.com/aws-solutions-library-samples/guidance-for-understanding-your-data-lineage-on-amazon-quickSight/raw/main/updateboto3-layer.zip").data
 
                 response = s3.put_object(
                                 Bucket = bucket,
@@ -557,7 +557,7 @@ Resources:
         - ''
         - - CreateQuickSightDLCodeDownloadLambdaExecutor
           - !Ref Suffix
-      CodeUrl: 'https://github.com/rajjayaaws/quicksightdl/raw/main/LambdaResource.zip'
+      CodeUrl: 'https://github.com/aws-solutions-library-samples/guidance-for-understanding-your-data-lineage-on-amazon-quickSight/raw/main/LambdaResource.zip'
       Bucket: !Ref CodeBucket
       FileName: CreateQuickSightDLCustomResource.zip
 
