@@ -99,6 +99,8 @@ Resources:
                   - quicksight:PassDataSet
                   - quicksight:UpdateDashboard
                   - quicksight:UpdateDashboardPublishedVersion
+                  - quicksight:UpdateDataSource
+                  - quicksight:UpdateDataSet
                 Resource: '*'
               - Effect: Allow
                 Resource:
@@ -344,7 +346,7 @@ Resources:
           - ''
           - - createquicksight-dlcodebucket-
             - !Ref AWS::AccountId
-        LogFilePrefix: access-logs
+        LogFilePrefix: access-logs/
       BucketName: !Join
           - ''
           - - createquicksight-dlcodebucket-
