@@ -409,12 +409,12 @@ Resources:
                 - 's3:*'
             Effect: Deny
             Resource:
-              'Fn::Join':
+              - !Join
                 - ''
                 - - 'arn:aws:s3:::'
                   - Ref: QuickSightDataLineageBucket
-                  - /*
-              'Fn::Join':
+                  - '/*'
+              - !Join
                 - ''
                 - - 'arn:aws:s3:::'
                   - Ref: QuickSightDataLineageBucket
@@ -431,7 +431,7 @@ Resources:
               - ''
               - - 'arn:aws:s3:::'
                 - !Ref QuickSightDataLineageBucket
-                - /*
+                - '/*'
             Condition:
               ArnLike:
                 'aws:SourceArn': !GetAtt QuickSightDataLineageBucket.Arn
@@ -441,7 +441,6 @@ Resources:
   CodeDownloadLambda:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: python3.10
       FunctionName: !Join
         - ''
         - - CreateQuickSightDLCodeDownload
@@ -552,7 +551,6 @@ Resources:
     Type: AWS::Lambda::Function
     DependsOn: QuickSightDLResourceLambdaLayer
     Properties:
-      Runtime: python3.10
       TracingConfig:
         Mode: Active
       FunctionName: !Join
@@ -568,8 +566,6 @@ Resources:
       Code:
         S3Bucket: !Ref CodeBucket
         S3Key: CreateQuickSightDLCustomResource.zip
-      TracingConfig:
-        Mode: Active
       Layers:
         - !Ref QuickSightDLResourceLambdaLayer
       Environment:
